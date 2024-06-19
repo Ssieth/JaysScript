@@ -1,4 +1,7 @@
 # Jays RPG Board Script
+## v0.5.1
+* Snippets work!  Mostly :)
+
 ## v0.4.1
 * Allows you to add general CSS to the whole site
 

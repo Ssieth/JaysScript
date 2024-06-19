@@ -3,6 +3,8 @@
 // @namespace   https://jaysrpboard.proboards.com
 // @match       https://jaysrpboard.proboards.com/*
 // @require     https://code.jquery.com/jquery-3.7.1.min.js
+// @require     https://code.jquery.com/ui/1.13.3/jquery-ui.min.js
+// @require     https://cdn.jsdelivr.net/npm/ui-contextmenu@1.18.1/jquery.ui-contextmenu.min.js
 // @grant       GM_getValue
 // @grant       GM_setValue
 // @grant       GM_deleteValue
@@ -11,7 +13,9 @@
 // @grant       GM_setClipboard
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getResourceURL
-// @version     0.4.1
+// @grant       GM_getResourceText
+// @resource    JQI_CSS https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.css
+// @version     0.5.0
 // @author      Sieth
 // @description 19/06/2024, 10:33:25
 // @license     MIT
@@ -28,10 +32,10 @@ page["type"] = ""
 // -- What we are logging to the console -- //
 let logTags = {};
 logTags.startup = true;
-logTags.functiontrace = true;
-logTags.savesettings = true;
-logTags.updateconfig = true;
-logTags.editconfig = true;
+logTags.functiontrace = false;
+logTags.savesettings = false;
+logTags.updateconfig = false;
+logTags.editconfig = false;
 logTags.getpage = false;
 logTags.gminfo = false;
 
@@ -45,6 +49,11 @@ let jayClass = "jayscript";
 
 // Script Info
 let scriptLoc = "https://github.com/Ssieth/JaysScript/raw/main/jayrp.user.js";
+
+// Do not mess with these:
+let snippets = {};
+let strModal = '<div id="modalpop" title="title"></div>';
+
 
 // Logging
 function log(strLogTag, strMessage) {
@@ -66,6 +75,451 @@ function log(strLogTag, strMessage) {
     }
   }
 }
+
+/* =========================== */
+/* Snippets                    */
+/* =========================== */
+function throwModal(strTitle, strBody, width) {
+  log("functiontrace", "Start Function");
+  var intHeight;
+  let strWidth = "720px";
+  if (width) {
+    strWidth = width;
+  }
+  intHeight = Math.floor($(window).height() * 0.8);
+  if ($("#modalpop").length === 0) {
+    $('body').append($(strModal));
+  }
+  $('#modalpop').html(strBody).on("dialogopen", function (event, ui) {});
+  $('#modalpop').dialog({
+    title: strTitle,
+    width: strWidth,
+    maxHeight: intHeight
+  });
+}
+
+function sortSnippets_enableCustom() {
+  switch (config.snippets.sortType) {
+    case "alpha":
+      $("#sortable").hide();
+      break;
+    default:
+      $("#sortable").show();
+  }
+}
+
+function sortSnippets() {
+  if (!config.snippets) {
+    config.snippets = {}
+  }
+  if (!config.snippets.sortType) {
+    config.snippets.sortType = "alpha";
+    saveConfig();
+  }
+  var $page = $("div#helpmain");
+  if ($page.length <= 0) {
+    $("#fatal_error").css("width","auto");
+    $page = $("#fatal_error div.windowbg")
+  }
+  $page.css("max-width","initial");
+  $("h3.catbg").html("Sort Snippets");
+  document.title = "Sort Snippets";
+  var $help = $("<p>Just grab the snippet and drag it where you want it in the ordering.</p>");
+  var $sortOptions = $("<p></p>");
+  var $snippetList = $("<ul id='sortable'></ul>");
+  $sortOptions.append("<input class='sortType' type='radio' name='sortType' id='sortTypeAlpha' value='alpha' " + ((config.snippets.sortType == "alpha") ? " checked='checked'" : "") + "/>: <label for='sortTypeAlpha'>Alphabetical</label><br />");
+  $sortOptions.append("<input class='sortType' type='radio' name='sortType' id='sortTypeCustom' value='custom' " + ((config.snippets.sortType == "custom") ? " checked='checked'" : "") + "/>: <label for='sortTypeCustom'>Custom</label><br />");
+  GM_addStyle("#sortable { list-style-type: none; margin: 0; padding: 0; width: 60%; list-style-type:none; }");
+  GM_addStyle("#sortable li { margin: 0 3px 3px 3px; padding: 0.4em; padding-left: 1.5em; font-size: 1.4em; cursor: pointer; border: thin solid black;}");
+  GM_addStyle("#sortable li span { position: absolute; margin-left: -1.3em; }");
+  var aryKeys = sortedSnippetKeys();
+  for (var i = 0; i < aryKeys.length; i++) {
+    var key = aryKeys[i];
+    //console.log("KEY: " + key);
+    var snippet = snippets[key];
+    if (snippet.body.trim() === "") {
+      delete snippets[key];
+    }
+    $snippetList.append($("<li id='" + key + "'>" +  snippets[key].name + "</li>"));
+  }
+  $page.html("");
+  $page.append($help);
+  $page.append($sortOptions);
+  $page.append($snippetList);
+  sortSnippets_enableCustom();
+  $(".sortType").change(function() {
+    config.snippets.sortType = $('.sortType:checked').val();
+    saveConfig();
+    sortSnippets_enableCustom();
+  });
+  $( "#sortable" ).sortable({
+    cursor: "move",
+    deactivate: function( event, ui ) {
+      var arySorted = $( "#sortable" ).sortable( "toArray" );
+      for (var i = 0; i < arySorted.length; i++) {
+        if (!snippets[arySorted[i]]) {
+          console.log("*** Error finding snippet::" +  arySorted[i] + "::");
+        } else {
+          snippets[arySorted[i]].ordinal = i;
+        }
+      }
+      console.log(snippets);
+      saveSnippets();
+    }
+  });
+  $( "#sortable" ).disableSelection();
+}
+
+function cleanSnippets() {
+  log("functiontrace", "Start Function");
+  var key;
+  for (key in snippets) {
+    var snippet = snippets[key];
+    if (snippet.body.trim() === "") {
+      delete snippets[key];
+    }
+  }
+}
+
+function sortedSnippetKeys() {
+  log("functiontrace", "Start Function");
+  var sortType = "alpha";
+  if (config.snippets && config.snippets.sortType) {
+    sortType = config.snippets.sortType;
+  }
+  console.log("SortType:" + sortType);
+  switch (sortType) {
+    case "alpha":
+      return Object.keys(snippets).sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase());  });
+    case "custom":
+      return Object.keys(snippets).sort(function compare(aKey, bKey) {
+        var a = snippets[aKey];
+        var b = snippets[bKey];
+        if (a.ordinal < b.ordinal) {
+          return -1;
+        }
+        if (a.ordinal > b.ordinal) {
+          return 1;
+        }
+        return 0;
+      });
+  }
+}
+
+function setSnippet() {
+  log("functiontrace", "Start Function");
+  var strName = $('#snippetName').val();
+  var strBody = $('#snippetBody').val();
+  var strID = strName.replace(/ /g, "-");
+  var snippet = {};
+
+  strID = strID.replaceAll("\'","");
+  strID = strID.replaceAll('\"',"");
+  snippet.id = strID.replaceAll(":","");
+  snippet.body = strBody;
+  snippet.name = strName.replaceAll(":","");
+  snippet.ordinal = Object.keys(snippets).length;
+  snippets[strID] = snippet;
+
+  cleanSnippets();
+  saveSnippets();
+  //displaySnippets();
+  //$('#modalpop').dialog( "close" );
+
+  return false;
+}
+
+function frmSnippetBody() {
+  log("functiontrace", "Start Function");
+  var strBody = "";
+  var key;
+  strBody = "<p><strong>Add Snippet</strong></p>";
+  strBody += "<table>";
+  strBody += "<tr>";
+  strBody += " <th style='vertical-align: top; text-align: right;'>Name:</th>";
+  strBody += " <td><input type='text' id='snippetName' size='50'></td>";
+  strBody += "</tr>";
+  strBody += "<tr>";
+  strBody += " <th style='vertical-align: top; text-align: right;'>Snippet:</th>";
+  strBody += " <td><textarea id='snippetBody' rows='3' cols='50'></textarea></td>";
+  strBody += "</tr>";
+  strBody += "<tr>";
+  strBody += " <td colspan='2'><center><button value='Set' id='setSnippet'>Set</button></center></td>";
+  strBody += "</tr>";
+  strBody += "</table>";
+  strBody += "<p><strong>Current Snippets</strong></p>";
+  strBody += "<table>";
+  strBody += "<tr>";
+  strBody += " <th style='text-align: left;'>Name</th>";
+  strBody += " <th style='text-align: left;'>Actions</th>";
+  strBody += "</tr>";
+  for (key in snippets) {
+    var snippet = snippets[key];
+    if (snippet.body !== "") {
+      strBody += "<tr id='snipEdit_row_" + snippet.id + "'>";
+      strBody += " <td>" + snippet.name.replace("'", "&#39;") + "</td>";
+      strBody += " <td>";
+      strBody += "<button type='button' id='snipEdit_use_" + snippet.id + "' class='snipEdit_usebutton' value='Use'>Use</button> ";
+      strBody += "<button type='button' id='snipEdit_update_" + snippet.id + "' class='snipEdit_updatebutton' value='Edit'>Edit</button> ";
+      strBody += "<button type='button' id='snipEdit_delete_" + snippet.id + "' class='snipEdit_deletebutton' value='Delete'>Delete</button> ";
+      strBody += "</td>";
+      strBody += "</tr>";
+    }
+  }
+  return strBody;
+}
+
+function frmSnippetButtons() {
+  log("functiontrace", "Start Function");
+  var strBody;
+  var strID;
+  var snippet;
+  $('button#setSnippet').click(function (e) {
+    e.preventDefault();
+    setSnippet();
+    strBody = frmSnippetBody();
+    $("#modalpop").html(strBody);
+    frmSnippetButtons();
+  });
+  $('#modalpop button.snipEdit_updatebutton').click(function (e) {
+    strID = $(this).attr("id");
+    strID = strID.replace("snipEdit_update_", "");
+    snippet = snippets[strID];
+    $("#modalpop #snippetName").val(snippet.name);
+    $("#modalpop #snippetBody").val(snippet.body);
+  });
+  $('#modalpop button.snipEdit_usebutton').click(function (e) {
+    strID = $(this).attr("id");
+    strID = strID.replace("snipEdit_use_", "");
+    snippet = snippets[strID];
+    pasteToDesc(snippets[strID].body, false);
+  });
+  $('#modalpop button.snipEdit_deletebutton').click(function (e) {
+    strID = $(this).attr("id");
+    strID = strID.replace("snipEdit_delete_", "");
+    delete snippets[strID];
+    saveSnippets();
+    //displaySnippets();
+    strBody = frmSnippetBody();
+    $("#modalpop").html(strBody);
+    frmSnippetButtons();
+  });
+}
+
+function frmSnippet() {
+  log("functiontrace", "Start Function");
+  var strBody = frmSnippetBody;
+  var strID = "";
+  throwModal("Add Snippet", strBody);
+  frmSnippetButtons();
+}
+
+function cleanSnippetKeys() {
+  var tmp = {};
+  for (var key in snippets) {
+    var snip = snippets[key];
+    var newKey = key;
+    newKey = newKey.replaceAll("\'","");
+    newKey = newKey.replaceAll("\&","");
+    newKey = newKey.replaceAll('\"',"");
+    snip.id = newKey;
+    tmp[newKey] = snip;
+  }
+  snippets = tmp;
+}
+
+function loadSnippets() {
+  log("functiontrace", "Start Function");
+  var strSnippets = GM_getValue("snippets", "");
+  if (strSnippets !== "") {
+    snippets = JSON.parse(strSnippets);
+    cleanSnippetKeys();
+  }
+}
+
+function rawSnippets() {
+    return JSON.stringify(snippets);
+}
+
+function saveSnippets() {
+  log("functiontrace", "Start Function");
+  cleanSnippetKeys();
+  GM_setValue("snippets", JSON.stringify(snippets));
+}
+
+function moveCaretToEnd(el) {
+  log("functiontrace", "Start Function");
+  if (typeof el.selectionStart == "number") {
+    el.selectionStart = el.selectionEnd = el.value.length;
+  }
+  else if (typeof el.createTextRange != "undefined") {
+    el.focus();
+    var range = el.createTextRange();
+    range.collapse(false);
+    range.select();
+  }
+}
+
+/* For doing bold, italics etc */
+function pasteToDesc(snippet, moveToEnd) {
+  log("functiontrace", "Start Function");
+  var textArea = $(strLastFocus);
+  if (textArea.length > 0) {
+    var start = textArea[0].selectionStart;
+    var end = textArea[0].selectionEnd;
+    let iPos = snippet.indexOf("%sel%");
+
+    if (iPos > -1) {
+      let strSel = "";
+      if (end > start) {
+        strSel = textArea.val().substring(start, end);
+      }
+      snippet = snippet.replace("%sel%",strSel);
+    }
+
+    var replacement = snippet;
+    textArea.val(textArea.val().substring(0, start) + replacement + textArea.val().substring(end, textArea.val().length));
+    if (moveToEnd) {
+      moveCaretToEnd(textArea[0]);
+    }
+  }
+}
+
+function pasteSnippet($this) {
+  log("functiontrace", "Start Function");
+  var strID = $this.attr("id").replace("snip-", "");
+  pasteToDesc(snippets[strID].body, false);
+  return false;
+}
+
+function pasteSnippetNew($this) {
+  log("functiontrace", "Start Function");
+  var strID = $this.attr("id").replace("snipNew-", "");
+  pasteToDesc(snippets[strID].body, false);
+  return false;
+}
+
+function replaceSnippetsTags() {
+  var aryKeys = sortedSnippetKeys();
+  var textArea = $(strLastFocus);
+  if (textArea.length > 0) {
+    console.log("RST: Got textarea");
+    //textArea = textArea[0];
+    var strText = textArea.val();
+    for (var i = 0; i < aryKeys.length; i++) {
+      var strKey = aryKeys[i];
+      strText = strText.replaceAll("\\[" + i + "\\]", snippets[strKey].body);
+      console.log("RST: replaced: " + strKey);
+    }
+    textArea.val(strText);
+  }
+}
+
+function getSnipCats() {
+  let keys = sortedSnippetKeys();
+  let cats = [];
+  for (const key of keys) {
+    let iPos = key.indexOf("__");
+    if (iPos > -1) {
+      let strCat = key.substring(0,iPos);
+      if (!cats.includes(strCat)) {
+        cats.push(strCat);
+      }
+    }
+  }
+  return cats;
+}
+
+function buildSnipMenu() {
+  let $snipNew = $("<ul id='snipMenu' style='width: 8rem; float: right; margin-right: 15rem; z-index: 999; margin-top: 9px;'><li><div id='snipNewTop'>Snippets</div><ul id='snipMenuInner' style='width: 10rem'></ul></li></ul>")
+  let $snipInner = $snipNew.find("#snipMenuInner");
+  $snipNew.find('#snipNewTop').click(function (e) {
+    //e.preventDefault();
+    frmSnippet();
+    if (config.general.snippetscontext) {
+      $("#snipMenu").hide();
+    }
+  });
+  var keys = sortedSnippetKeys();
+  let cats = getSnipCats();
+  for (const catName of cats) {
+    let $catLi = $("<li><div>" + catName + "</div><ul style='width: 10rem' id='snipCat-" + catName + "'></ul></li>");
+    $snipInner.append($catLi);
+  }
+  for (const key of keys) {
+    var snippet = snippets[key];
+    var snipName = "";
+    let iPos = key.indexOf("__");
+    if (snippet.body !== "") {
+      if (iPos > -1) {
+        snipName = snippet.name.substring(iPos+2);
+      } else {
+        snipName = snippet.name;
+      }
+      let $snip = $("<li id='snipNew-" + snippet.id + "'><div>" + snipName + "</div></li>");
+      $snip.click(function (e) {
+        pasteSnippetNew($(this));
+        if (config.general.snippetscontext) {
+          $("#snipMenu").hide();
+        }
+        //stopDefaultAction(e);
+        return false;
+      });
+      if (iPos > -1) {
+        let strCat = key.substring(0,iPos);
+        $snipInner.find("#snipCat-" + strCat).append($snip);
+      } else {
+        $snipInner.append($snip);
+      }
+    }
+  }
+
+  $snipNew.menu();
+  return $snipNew;
+}
+
+
+function setSnipMenu(strSel, copyTo) {
+  var $copyTo = $(copyTo);
+  if ($copyTo.length > 0) {
+    $copyTo.find("#snipMenu").remove();
+    $copyTo.before(buildSnipMenu());
+  }
+
+  if (config.general.snippetscontext) {
+    $(document).contextmenu({
+      delegate: strSel,
+      closeOnWindowBlur: false,
+      menu: "#snipMenu",
+      select: function(event, ui) {
+        alert("select " );
+      }
+    });
+
+    $( document.body ).click( function() {
+      $("#snipMenu").hide();
+    } );
+  }
+}
+
+function displaySnippets() {
+  log("functiontrace", "Start Function");
+  console.log("Display Snippets");
+  if (!config.general.snippets)  {
+    return;
+  }
+  setTimeout(function() {
+    console.log("== dS ==")
+      console.log($("div.bbcode-editor textarea"));
+    if ($("div.bbcode-editor textarea").length > 0) {
+      console.log($("div.bbcode-editor textarea"));
+      strLastFocus ="div.bbcode-editor textarea";
+      setSnipMenu("div.bbcode-editor textarea","body");
+    }
+  },500);
+
+}
+/* =========================== */
 
 /* =========================== */
 /* Main Menu                   */
@@ -163,6 +617,8 @@ function initConfig(andThen) {
   saveConfig();
   // General
   initConfigItem("general","CSS", "", {text: "CSS", type: "textbox", cols: 60, rows: 10 });
+  initConfigItem("general","snippets", false, {text: "Snippets?", type: "bool" });
+  initConfigItem("general","snippetscontext", true, {text: "Snippets context menu?", type: "bool" });
 
   if (andThen) andThen();
 }
@@ -419,6 +875,7 @@ function applyCSS() {
   if (config.general.CSS && config.general.CSS.trim().length > 0) {
     GM_addStyle(config.general.CSS);
   }
+  GM_addStyle(GM_getResourceText("JQI_CSS"));
 }
 
 /*
@@ -466,12 +923,15 @@ function main() {
   applyCSS();
   getPage();
   setupMenus();
+  loadSnippets();
   switch (page.type) {
       case "thread":
+        displaySnippets();
         StyleSpeechElements("div.message");
         setupImageEnlarge("div.message");
         break;
       case "post":
+        displaySnippets();
         StyleSpeechElements("div.message");
         break;
     case "script":
