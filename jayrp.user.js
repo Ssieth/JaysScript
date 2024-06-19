@@ -15,7 +15,7 @@
 // @grant       GM_getResourceURL
 // @grant       GM_getResourceText
 // @resource    JQI_CSS https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.css
-// @version     0.6.1
+// @version     0.6.2
 // @author      Sieth
 // @description 19/06/2024, 10:33:25
 // @license     MIT
@@ -932,6 +932,7 @@ function main() {
         if (config.general.scrollToBottom) {
           window.scrollTo(0, document.body.scrollHeight);
         }
+        $('footer').prepend($('div#navigation-menu').clone().attr("id","navigation-menu"));
         break;
       case "post":
         displaySnippets();
