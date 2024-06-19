@@ -1,4 +1,7 @@
 # Jays RPG Board Script
+## v0.3.2
+* Minor tweak to logging
+
 ## v0.3.1
 * Script configuration editing added
 

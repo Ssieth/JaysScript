@@ -11,7 +11,7 @@
 // @grant       GM_setClipboard
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getResourceURL
-// @version     0.3.1
+// @version     0.3.2
 // @author      Ssieth
 // @description 19/06/2024, 10:33:25
 // @license     MIT
@@ -29,6 +29,12 @@ page["type"] = ""
 let logTags = {};
 logTags.startup = true;
 logTags.functiontrace = false;
+logTags.savesettings = false;
+logTags.updateconfig = false;
+logTags.editconfig = false;
+logTags.getpage = false;
+logTags.gminfo = false;
+
 
 // CSS
 let strCSSPointer = ".pointer {cursor: pointer !important; }";
@@ -43,12 +49,20 @@ let scriptLoc = "https://github.com/Ssieth/JaysScript/raw/main/jayrp.user.js";
 // Logging
 function log(strLogTag, strMessage) {
   if (logTags[strLogTag]) {
-    var now = new Date();
+    let now = new Date();
+    let msg = "-".repeat(80) + "\n";
     if (log.caller === undefined || log.caller === null) {
-      console.log(now.toLocaleString() + ":" + strLogTag + ": " + log.caller.name + ": " + JSON.stringify(strMessage));
+      msg = msg + now.toLocaleString() + ":" + strLogTag + ": " + log.caller.name + ": "; // + JSON.stringify(strMessage);
     }
     else {
-      console.log(now.toLocaleString() + ":" + strLogTag + ": -none-: " + JSON.stringify(strMessage));
+      msg = msg + now.toLocaleString() + ":" + strLogTag + ": "; // + JSON.stringify(strMessage);
+    }
+    if (typeof strMessage === 'string' || strMessage instanceof String) {
+      console.log(`${msg} ${JSON.stringify(strMessage)} ${"-".repeat(80)}`);
+    } else {
+      console.log(msg);
+      console.log(strMessage);
+      console.log("-".repeat(80));
     }
   }
 }
@@ -126,8 +140,8 @@ function loadConfig(andThen) {
 function saveConfig(andThen) {
 	config.version = GM_info.script.version;
   config.savedWhen = new Date();
-  console.log("Saving config");
-  console.log(config);
+  log("savesettings","Saving config");
+  log("savesettings",config);
   GM_setValue("config",JSON.stringify(config));
   if (andThen) andThen();
 }
@@ -155,26 +169,26 @@ function updateConfig(controlID) {
 	var aID = controlID.split("-");
 	var catID = aID[3];
 	var settingID = aID[4];
-  console.log("Set: " + settingID);
-  console.log($control);
+  log("updateconfig","Set: " + settingID);
+  log("updateconfig",$control);
 	if ($control.hasClass("gm-settings-control-bool")) {
 		config[catID][settingID] = $control[0].checked;
 	} else if ($control.hasClass("gm-settings-control-int")) {
-        console.log("Inty: " + settingID);
+        log("updateconfig","Inty: " + settingID);
         var intVal = parseInt($control.val());
-        console.log(intVal);
+        log("updateconfig",intVal);
         if ($.isNumeric("" + intVal)) {
             if (config_display[catID][settingID].hasOwnProperty("min") && intVal < config_display[catID][settingID].min) {
-                console.log("There's a minimum and " + intVal + " < " + config_display[catID][settingID].min);
+                log("updateconfig","There's a minimum and " + intVal + " < " + config_display[catID][settingID].min);
                 return false;
             }
             if (config_display[catID][settingID].hasOwnProperty("max") && intVal > config_display[catID][settingID].max) {
-                console.log("There's a maximum and " + intVal + " > " + config_display[catID][settingID].max);
+                log("updateconfig","There's a maximum and " + intVal + " > " + config_display[catID][settingID].max);
                 return false;
             }
             config[catID][settingID] = intVal;
         } else {
-            console.log("Not an integer: " + $control.val())
+            log("updateconfig","Not an integer: " + $control.val())
             return false;
         }
 	} else {
@@ -196,7 +210,7 @@ function editConfig() {
   let $titleBar = $("#content div.title-bar");
   let $page = $("#content div.content");
 
-  console.log($titleBar);
+  log("editconfig",$titleBar);
   $titleBar.html(`<h1>${GM_info.script.name} v${GM_info.script.version} (<a style='color:white' href='${scriptLoc}'>Force Update</a>)</h1>`)
 
   $page.css("max-width","initial");
@@ -422,7 +436,8 @@ function getPage() {
       page.type = page.url.page;
       break;
   }
-  console.log(page);
+  log("getpage","Get Page");
+  log("getpage",page);
 }
 
 /* =========================== */
@@ -447,7 +462,7 @@ function main() {
 }
 
 $( document ).ready(function() {
-  console.log(GM_info);
+  log("gminfo",GM_info);
   log("startup", "Starting " + GM_info.script.name + " v" + GM_info.script.version);
   initConfig(main);
 });
