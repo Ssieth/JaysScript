@@ -11,8 +11,8 @@
 // @grant       GM_setClipboard
 // @grant       GM_xmlhttpRequest
 // @grant       GM_getResourceURL
-// @version     0.3.2
-// @author      Ssieth
+// @version     0.4.1
+// @author      Sieth
 // @description 19/06/2024, 10:33:25
 // @license     MIT
 // @copyright   2021, Ssieth@ssieth.co.uk
@@ -28,10 +28,10 @@ page["type"] = ""
 // -- What we are logging to the console -- //
 let logTags = {};
 logTags.startup = true;
-logTags.functiontrace = false;
-logTags.savesettings = false;
-logTags.updateconfig = false;
-logTags.editconfig = false;
+logTags.functiontrace = true;
+logTags.savesettings = true;
+logTags.updateconfig = true;
+logTags.editconfig = true;
 logTags.getpage = false;
 logTags.gminfo = false;
 
@@ -151,6 +151,7 @@ function initConfig(andThen) {
   config_display = {};
   loadConfig();
   // Settings categories
+  initConfigCategory("general","General");
   initConfigCategory("speechStyling","Speech Styling");
   initConfigCategory("image","Images");
   // Speech Styling
@@ -160,6 +161,9 @@ function initConfig(andThen) {
   // Images
   initConfigItem("image","enlarge", true, {text: "Click to Enlarge?", type: "bool" });
   saveConfig();
+  // General
+  initConfigItem("general","CSS", "", {text: "CSS", type: "textbox", cols: 60, rows: 10 });
+
   if (andThen) andThen();
 }
 
@@ -204,7 +208,7 @@ function editConfig() {
   GM_addStyle(".gm-settings-setting { margin-bottom: 15px; border-bottom: thin solid gray; width: auto; padding-bottom: 5px; }");
   GM_addStyle(".gm-settings-setting-label { margin-right: 10px; display: inline; font-weight: bold; color: black;}");
   GM_addStyle(".gm-settings-control-int { width: 4rem; }");
-  GM_addStyle(".gm-settings-setting-label { max-width: 15rem; display: inline-block; }");
+  GM_addStyle(".gm-settings-setting-label { max-width: 15rem; display: inline-block; vertical-align: top; }");
   //var $page = $("div#helpmain");
   //$("#fatal_error").css("width","auto");
   let $titleBar = $("#content div.title-bar");
@@ -253,8 +257,19 @@ function editConfig() {
                       }
                       $newSetting.append($select);
                       break;
-                  case "text":
-                  default:
+                case "textbox":
+                  let strBox = `<span class='gm-settings-setting-value'><textarea class='gm-settings-control gm-settings-control-text' id='gm-settings-value-${key}-${key2}'`;
+                  if (setting.cols) {
+                    strBox = `${strBox} cols='${setting.cols}'`;
+                  }
+                  if (setting.rows) {
+                    strBox = `${strBox} rows='${setting.rows}'`;
+                  }
+                  strBox = `${strBox}>${val}</textarea></span>`;
+                  $newSetting.append(strBox);
+                  break;
+                case "text":
+                  default:11
                       $newSetting.append("<span class='gm-settings-setting-value'><input type='text' class='gm-settings-control gm-settings-control-text' id='gm-settings-value-" + key + "-" + key2 + "' value='" + val + "'></span>");
                       break;
               }
@@ -400,6 +415,10 @@ function applyCSS() {
   log("functiontrace", "Start Function");
   GM_addStyle(strCSSPointer);
   GM_addStyle(strCSSMaxWidth100);
+   console.log(config.general.CSS);
+  if (config.general.CSS && config.general.CSS.trim().length > 0) {
+    GM_addStyle(config.general.CSS);
+  }
 }
 
 /*

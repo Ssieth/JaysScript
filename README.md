@@ -1,4 +1,7 @@
 # Jays RPG Board Script
+## v0.4.1
+* Allows you to add general CSS to the whole site
+
 ## v0.3.2
 * Minor tweak to logging
 
