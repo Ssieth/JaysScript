@@ -1,4 +1,7 @@
 # Jays RPG Board Script
+## v0.6.1
+* Added autoscroll threads as an option which automatically goes to the bottom of a thread when you load the page
+
 ## v0.5.1
 * Snippets work!  Mostly :)
 

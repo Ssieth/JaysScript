@@ -15,7 +15,7 @@
 // @grant       GM_getResourceURL
 // @grant       GM_getResourceText
 // @resource    JQI_CSS https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.css
-// @version     0.5.0
+// @version     0.6.0
 // @author      Sieth
 // @description 19/06/2024, 10:33:25
 // @license     MIT
@@ -619,7 +619,7 @@ function initConfig(andThen) {
   initConfigItem("general","CSS", "", {text: "CSS", type: "textbox", cols: 60, rows: 10 });
   initConfigItem("general","snippets", false, {text: "Snippets?", type: "bool" });
   initConfigItem("general","snippetscontext", true, {text: "Snippets context menu?", type: "bool" });
-
+  initConfigItem("general","scrollToBottom", true, {text: "Autoscroll Threads?", type: "bool" });
   if (andThen) andThen();
 }
 
@@ -929,6 +929,9 @@ function main() {
         displaySnippets();
         StyleSpeechElements("div.message");
         setupImageEnlarge("div.message");
+        if (config.general.scrollToBottom) {
+          window.scrollTo(0, document.body.scrollHeight);
+        }
         break;
       case "post":
         displaySnippets();
