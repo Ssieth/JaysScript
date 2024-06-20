@@ -1,4 +1,7 @@
 # Jays RPG Board Script
+## v0.9.2
+* Some minor tweaks to snippets for general improvement
+
 ## v0.9.1
 * Added option for wordcount display in threads.  
 * Fixed a bit of a scroll issue whilst reversing threads

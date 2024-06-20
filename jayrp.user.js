@@ -15,7 +15,7 @@
 // @grant       GM_getResourceURL
 // @grant       GM_getResourceText
 // @resource    JQI_CSS https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.css
-// @version     0.9.1
+// @version     0.9.2
 // @author      Sieth
 // @description 19/06/2024, 10:33:25
 // @license     MIT
@@ -564,7 +564,7 @@ function displaySnippets() {
   setTimeout(function() {
     if ($("div.bbcode-editor textarea").length > 0) {
       strLastFocus ="div.bbcode-editor textarea";
-      setSnipMenu("div.bbcode-editor textarea","body");
+      setSnipMenu("div.bbcode-editor textarea","div.subject_input");
     }
   },500);
 
@@ -1023,7 +1023,11 @@ function main() {
         displaySnippets();
         StyleSpeechElements("div.message");
         if (config.threads.reverseThread) {
-          reverseThread()
+          try {
+            reverseThread();
+          }
+          catch(err) {
+          }
         }
         // Show word counts
         if (config.threads.wordCount) {
