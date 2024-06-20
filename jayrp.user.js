@@ -19,7 +19,7 @@
 // @author      Sieth
 // @description 19/06/2024, 10:33:25
 // @license     MIT
-// @copyright   2021, Ssieth@ssieth.co.uk
+// @copyright   2024, Ssieth@ssieth.co.uk
 // ==/UserScript==
 
 // Setup config object
