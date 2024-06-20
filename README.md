@@ -1,4 +1,8 @@
 # Jays RPG Board Script
+## v0.9.1
+* Added option for wordcount display in threads.  
+* Fixed a bit of a scroll issue whilst reversing threads
+
 ## v0.8.2
 * Reversing order of posts applies to reply screen as well 
 

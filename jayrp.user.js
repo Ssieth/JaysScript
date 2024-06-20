@@ -15,7 +15,7 @@
 // @grant       GM_getResourceURL
 // @grant       GM_getResourceText
 // @resource    JQI_CSS https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.css
-// @version     0.8.2
+// @version     0.9.1
 // @author      Sieth
 // @description 19/06/2024, 10:33:25
 // @license     MIT
@@ -76,8 +76,40 @@ function log(strLogTag, strMessage) {
   }
 }
 
+
+
+
 /* =========================== */
-/* Reversing Table             */
+/* Wordcounts                  */
+/* =========================== */
+function getWordCount(strText) {
+  log("functiontrace", "Start Function");
+  var regex = /\s+/gi;
+  var wordCount = strText.trim().replace(regex, ' ').split(' ').length;
+  return wordCount;
+}
+
+function showWordCountThreads() {
+  $("div.message").each(function() {
+    let $post = $(this);
+    let wc = getWordCount($post.text());
+    let $article = $post.parent();
+    let $head = $article.find("div.content-head div.info");
+    let style = "font-size: 80%;";
+    switch (page.type) {
+      case "thread":
+        style = style + " vertical-align: -7px;";
+        break;
+      case "post":
+        style = style + " margin-left: 10px;";
+        break;
+    }
+    $head.append(`<span style='${style}'>(${wc} words)</span>`);
+  });
+}
+
+/* =========================== */
+/* Reversing Table/threads     */
 /* =========================== */
 function reverseTableRows(tableId) {
     var table = document.getElementById(tableId),
@@ -526,15 +558,11 @@ function setSnipMenu(strSel, copyTo) {
 
 function displaySnippets() {
   log("functiontrace", "Start Function");
-  console.log("Display Snippets");
   if (!config.general.snippets)  {
     return;
   }
   setTimeout(function() {
-    console.log("== dS ==")
-      console.log($("div.bbcode-editor textarea"));
     if ($("div.bbcode-editor textarea").length > 0) {
-      console.log($("div.bbcode-editor textarea"));
       strLastFocus ="div.bbcode-editor textarea";
       setSnipMenu("div.bbcode-editor textarea","body");
     }
@@ -646,6 +674,7 @@ function initConfig(andThen) {
   initConfigItem("threads","scrollToBottom", false, {text: "Autoscroll Threads?", type: "bool" });
   initConfigItem("threads","removeQuickReply", false, {text: "Remove Quick Reply?", type: "bool" });
   initConfigItem("threads","reverseThread", false, {text: "Most recent first?", type: "bool" });
+  initConfigItem("threads","wordCount", true, {text: "Show word count?", type: "bool" });
 
   saveConfig();
   if (andThen) andThen();
@@ -899,7 +928,6 @@ function applyCSS() {
   log("functiontrace", "Start Function");
   GM_addStyle(strCSSPointer);
   GM_addStyle(strCSSMaxWidth100);
-   console.log(config.general.CSS);
   if (config.general.CSS && config.general.CSS.trim().length > 0) {
     GM_addStyle(config.general.CSS);
   }
@@ -959,25 +987,47 @@ function main() {
   switch (page.type) {
       case "thread":
         displaySnippets();
+        // The following two have config control inside the functions
         StyleSpeechElements("div.message");
         setupImageEnlarge("div.message");
-        if (config.threads.scrollToBottom) {
-          window.scrollTo(0, document.body.scrollHeight);
-          $('footer').prepend($('div#navigation-menu').clone().attr("id","navigation-menu").css("margin-bottom","10px"));
-        }
+
+        // Remove quick reply
         if (config.threads.removeQuickReply) {
           $("div.quick-reply").remove();
         }
+
+        // See most recent posts first
         if (config.threads.reverseThread) {
           reverseThread()
         }
+
+        // Scroll to bottom of thread
+        if (config.threads.scrollToBottom) {
+          window.scrollTo(0, document.body.scrollHeight);
+        } else {
+          window.scrollTo(0, 0          
+        }
+
+        // Add top menu to bottom of page
+        $('footer').prepend($('div#navigation-menu').clone().attr("id","navigation-menu").css("margin-bottom","10px"));4
+
+        // Add reply link to top (and bottom) menu
         setupMenu("reply","Reply",`/post/new/${page.thread}`);
+
+        // Show word counts
+        if (config.threads.wordCount) {
+          showWordCountThreads();
+        }
         break;
       case "post":
         displaySnippets();
         StyleSpeechElements("div.message");
         if (config.threads.reverseThread) {
           reverseThread()
+        }
+        // Show word counts
+        if (config.threads.wordCount) {
+          showWordCountThreads();
         }
         break;
     case "script":
