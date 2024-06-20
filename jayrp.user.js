@@ -15,7 +15,7 @@
 // @grant       GM_getResourceURL
 // @grant       GM_getResourceText
 // @resource    JQI_CSS https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.css
-// @version     0.6.2
+// @version     0.7.1
 // @author      Sieth
 // @description 19/06/2024, 10:33:25
 // @license     MIT
@@ -608,18 +608,23 @@ function initConfig(andThen) {
   initConfigCategory("general","General");
   initConfigCategory("speechStyling","Speech Styling");
   initConfigCategory("image","Images");
+  initConfigCategory("threads","Threads");
   // Speech Styling
   initConfigItem("speechStyling","on", true, {text: "Style Speech?", type: "bool" });
   initConfigItem("speechStyling","incQuote", true , {text: "Include quotes?", type: "bool" });
   initConfigItem("speechStyling","CSS", "color: blue;", {text: "Speech Styling (CSS)", type: "text" });
   // Images
   initConfigItem("image","enlarge", true, {text: "Click to Enlarge?", type: "bool" });
-  saveConfig();
   // General
   initConfigItem("general","CSS", "", {text: "CSS", type: "textbox", cols: 60, rows: 10 });
   initConfigItem("general","snippets", false, {text: "Snippets?", type: "bool" });
   initConfigItem("general","snippetscontext", true, {text: "Snippets context menu?", type: "bool" });
-  initConfigItem("general","scrollToBottom", true, {text: "Autoscroll Threads?", type: "bool" });
+
+  //Threads
+  initConfigItem("threads","scrollToBottom", true, {text: "Autoscroll Threads?", type: "bool" });
+  initConfigItem("threads","removeQuickReply", false, {text: "Remove Quick Reply?", type: "bool" });
+
+  saveConfig();
   if (andThen) andThen();
 }
 
@@ -897,6 +902,7 @@ function getPage() {
   page.url.page = window.location.pathname.split('/')[1].toLowerCase();
   page.url.query = window.location.search;
   page.url.hash = window.location.hash;
+  page.thread = -1;
   page.type = "";
   switch (page.url.page) {
     case "search":
@@ -908,6 +914,9 @@ function getPage() {
           page.type = page.url.page;
       }
       break;
+    case "thread":
+      page.type = page.url.page;
+      page.thread = parseInt(window.location.pathname.split('/')[2]);
     default:
       page.type = page.url.page;
       break;
@@ -929,10 +938,14 @@ function main() {
         displaySnippets();
         StyleSpeechElements("div.message");
         setupImageEnlarge("div.message");
-        if (config.general.scrollToBottom) {
+        if (config.threads.scrollToBottom) {
           window.scrollTo(0, document.body.scrollHeight);
+          $('footer').prepend($('div#navigation-menu').clone().attr("id","navigation-menu").css("margin-bottom","10px"));
         }
-        $('footer').prepend($('div#navigation-menu').clone().attr("id","navigation-menu"));
+        if (config.threads.removeQuickReply) {
+          $("div.quick-reply").remove();
+        }
+        setupMenu("reply","Reply",`/post/new/${page.thread}`);
         break;
       case "post":
         displaySnippets();
