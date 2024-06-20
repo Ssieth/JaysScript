@@ -1,5 +1,8 @@
 # Jays RPG Board Script
 ## v0.7.1
+* New option to see most recent posts in a thread first
+
+## v0.7.1
 * New script settings area: Threads
 * Added some options to tidy up the Threads page a bit
 

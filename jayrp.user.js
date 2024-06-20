@@ -15,7 +15,7 @@
 // @grant       GM_getResourceURL
 // @grant       GM_getResourceText
 // @resource    JQI_CSS https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.css
-// @version     0.7.1
+// @version     0.8.1
 // @author      Sieth
 // @description 19/06/2024, 10:33:25
 // @license     MIT
@@ -74,6 +74,28 @@ function log(strLogTag, strMessage) {
       console.log("-".repeat(80));
     }
   }
+}
+
+/* =========================== */
+/* Reversing Table             */
+/* =========================== */
+function reverseTableRows(tableId) {
+    var table = document.getElementById(tableId),
+        newTbody = document.createElement('tbody'),
+        oldTbody = table.tBodies[0],
+        rows = oldTbody.rows,
+        i = rows.length - 1;
+
+    while (i >= 0) {
+        newTbody.appendChild(rows[i]);
+        i -= 1;
+    }
+    oldTbody.parentNode.replaceChild(newTbody, oldTbody);
+}
+
+function reverseThread() {
+  $("div.content>table").attr("id","contentTable");
+  reverseTableRows("contentTable");
 }
 
 /* =========================== */
@@ -621,8 +643,9 @@ function initConfig(andThen) {
   initConfigItem("general","snippetscontext", true, {text: "Snippets context menu?", type: "bool" });
 
   //Threads
-  initConfigItem("threads","scrollToBottom", true, {text: "Autoscroll Threads?", type: "bool" });
+  initConfigItem("threads","scrollToBottom", false, {text: "Autoscroll Threads?", type: "bool" });
   initConfigItem("threads","removeQuickReply", false, {text: "Remove Quick Reply?", type: "bool" });
+  initConfigItem("threads","reverseThread", false, {text: "Most recent first?", type: "bool" });
 
   saveConfig();
   if (andThen) andThen();
@@ -944,6 +967,9 @@ function main() {
         }
         if (config.threads.removeQuickReply) {
           $("div.quick-reply").remove();
+        }
+        if (config.threads.reverseThread) {
+          reverseThread()
         }
         setupMenu("reply","Reply",`/post/new/${page.thread}`);
         break;
