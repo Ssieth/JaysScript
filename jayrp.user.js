@@ -15,7 +15,7 @@
 // @grant       GM_getResourceURL
 // @grant       GM_getResourceText
 // @resource    JQI_CSS https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.css
-// @version     0.8.1
+// @version     0.8.2
 // @author      Sieth
 // @description 19/06/2024, 10:33:25
 // @license     MIT
@@ -976,6 +976,9 @@ function main() {
       case "post":
         displaySnippets();
         StyleSpeechElements("div.message");
+        if (config.threads.reverseThread) {
+          reverseThread()
+        }
         break;
     case "script":
         editConfig();

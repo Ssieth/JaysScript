@@ -1,5 +1,8 @@
 # Jays RPG Board Script
-## v0.7.1
+## v0.8.2
+* Reversing order of posts applies to reply screen as well 
+
+## v0.8.1
 * New option to see most recent posts in a thread first
 
 ## v0.7.1
