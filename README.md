@@ -1,4 +1,7 @@
 # Jays RPG Board Script
+## v0.10.1
+* Added wordcount for posting page
+
 ## v0.9.2
 * Some minor tweaks to snippets for general improvement
 

@@ -15,7 +15,7 @@
 // @grant       GM_getResourceURL
 // @grant       GM_getResourceText
 // @resource    JQI_CSS https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.css
-// @version     0.9.2
+// @version     0.10.1
 // @author      Sieth
 // @description 19/06/2024, 10:33:25
 // @license     MIT
@@ -39,13 +39,9 @@ logTags.editconfig = false;
 logTags.getpage = false;
 logTags.gminfo = false;
 
-
 // CSS
 let strCSSPointer = ".pointer {cursor: pointer !important; }";
 let strCSSMaxWidth100 = ".maxwidth100 {max-width: 100%}";
-
-// Contants
-let jayClass = "jayscript";
 
 // Script Info
 let scriptLoc = "https://github.com/Ssieth/JaysScript/raw/main/jayrp.user.js";
@@ -53,6 +49,7 @@ let scriptLoc = "https://github.com/Ssieth/JaysScript/raw/main/jayrp.user.js";
 // Do not mess with these:
 let snippets = {};
 let strModal = '<div id="modalpop" title="title"></div>';
+let jayClass = "jayscript";
 
 
 // Logging
@@ -76,6 +73,18 @@ function log(strLogTag, strMessage) {
   }
 }
 
+/* =========================== */
+/* Extending JQuert            */
+/* =========================== */
+/*
+ * jQuery throttle / debounce - v1.1 - 3/7/2010
+ * http://benalman.com/projects/jquery-throttle-debounce-plugin/
+ *
+ * Copyright (c) 2010 "Cowboy" Ben Alman
+ * Dual licensed under the MIT and GPL licenses.
+ * http://benalman.com/about/license/
+ */
+(function(b,c){var $=b.jQuery||b.Cowboy||(b.Cowboy={}),a;$.throttle=a=function(e,f,j,i){var h,d=0;if(typeof f!=="boolean"){i=j;j=f;f=c}function g(){var o=this,m=+new Date()-d,n=arguments;function l(){d=+new Date();j.apply(o,n)}function k(){h=c}if(i&&!h){l()}h&&clearTimeout(h);if(i===c&&m>e){l()}else{if(f!==true){h=setTimeout(i?k:l,i===c?e-m:e)}}}if($.guid){g.guid=j.guid=j.guid||$.guid++}return g};$.debounce=function(d,e,f){return f===c?a(d,e,false):a(d,f,e!==false)}})(this);
 
 
 
@@ -106,6 +115,35 @@ function showWordCountThreads() {
     }
     $head.append(`<span style='${style}'>(${wc} words)</span>`);
   });
+}
+
+let dbWCPost = $.debounce(500, function(e) {
+  // Exit if we shouldn't be here
+  if (!config.post.wordCount) {
+    return;
+  }
+  let txt = $("div.bbcode-editor textarea").val();
+  // Strip BBCode because that's not words :)
+  let txtNoBBCode = txt.replace(/\[\/?[^\]]*\]/g, '');
+  let wc = getWordCount(txtNoBBCode);
+  $("span#wordcountPostCount").text(wc);
+});
+
+function showWordCountPost() {
+  // Exit if we shouldn't be here
+  if (!config.post.wordCount) {
+    return;
+  }
+
+  // Insert the wordcount span if required
+  if ($("span#wordcountPostCount").length <= 0) {
+    $("div.controls div.bbcode-editor").append("<div id='wordcountPostCountContainer' style='margin-top: 4px; float: right;'>(<span id='wordcountPostCount'>0</span> words)</div>")
+  }
+
+
+  // Trigger function on keypess - done this way to allow for debounce
+  $("div.bbcode-editor textarea").keypress(dbWCPost);
+
 }
 
 /* =========================== */
@@ -436,6 +474,7 @@ function pasteToDesc(snippet, moveToEnd) {
     if (moveToEnd) {
       moveCaretToEnd(textArea[0]);
     }
+    dbWCPost(); // config-checking in function
   }
 }
 
@@ -659,6 +698,7 @@ function initConfig(andThen) {
   initConfigCategory("speechStyling","Speech Styling");
   initConfigCategory("image","Images");
   initConfigCategory("threads","Threads");
+  initConfigCategory("post","Post Page");
   // Speech Styling
   initConfigItem("speechStyling","on", true, {text: "Style Speech?", type: "bool" });
   initConfigItem("speechStyling","incQuote", true , {text: "Include quotes?", type: "bool" });
@@ -675,6 +715,9 @@ function initConfig(andThen) {
   initConfigItem("threads","removeQuickReply", false, {text: "Remove Quick Reply?", type: "bool" });
   initConfigItem("threads","reverseThread", false, {text: "Most recent first?", type: "bool" });
   initConfigItem("threads","wordCount", true, {text: "Show word count?", type: "bool" });
+
+  //Post Page
+  initConfigItem("post","wordCount", true, {text: "Show word count?", type: "bool" });
 
   saveConfig();
   if (andThen) andThen();
@@ -934,16 +977,6 @@ function applyCSS() {
   GM_addStyle(GM_getResourceText("JQI_CSS"));
 }
 
-/*
- * jQuery throttle / debounce - v1.1 - 3/7/2010
- * http://benalman.com/projects/jquery-throttle-debounce-plugin/
- *
- * Copyright (c) 2010 "Cowboy" Ben Alman
- * Dual licensed under the MIT and GPL licenses.
- * http://benalman.com/about/license/
- */
-(function(b,c){var $=b.jQuery||b.Cowboy||(b.Cowboy={}),a;$.throttle=a=function(e,f,j,i){var h,d=0;if(typeof f!=="boolean"){i=j;j=f;f=c}function g(){var o=this,m=+new Date()-d,n=arguments;function l(){d=+new Date();j.apply(o,n)}function k(){h=c}if(i&&!h){l()}h&&clearTimeout(h);if(i===c&&m>e){l()}else{if(f!==true){h=setTimeout(i?k:l,i===c?e-m:e)}}}if($.guid){g.guid=j.guid=j.guid||$.guid++}return g};$.debounce=function(d,e,f){return f===c?a(d,e,false):a(d,f,e!==false)}})(this);
-
 /* =========================== */
 /* Page object                 */
 /* =========================== */
@@ -1033,6 +1066,7 @@ function main() {
         if (config.threads.wordCount) {
           showWordCountThreads();
         }
+        showWordCountPost(); // config-checking in function
         break;
     case "script":
         editConfig();
