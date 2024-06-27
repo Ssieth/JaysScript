@@ -15,7 +15,7 @@
 // @grant       GM_getResourceURL
 // @grant       GM_getResourceText
 // @resource    JQI_CSS https://code.jquery.com/ui/1.13.3/themes/smoothness/jquery-ui.css
-// @version     0.10.1
+// @version     0.11.1
 // @author      Sieth
 // @description 19/06/2024, 10:33:25
 // @license     MIT
@@ -718,6 +718,7 @@ function initConfig(andThen) {
 
   //Post Page
   initConfigItem("post","wordCount", true, {text: "Show word count?", type: "bool" });
+  initConfigItem("post","mostRecentPage", true, {text: "Show most recent?", type: "bool" });
 
   saveConfig();
   if (andThen) andThen();
@@ -1056,10 +1057,29 @@ function main() {
         displaySnippets();
         StyleSpeechElements("div.message");
         if (config.threads.reverseThread) {
-          try {
-            reverseThread();
-          }
-          catch(err) {
+          if (config.post.mostRecentPage) {
+            let urlLatest = page.url.full.replace("post/new/","thread/") + "/?page=99999";
+            GM_xmlhttpRequest({
+              method: "GET",
+              url: urlLatest,
+              onload: function (response) {
+                let $response = $(response.responseText);
+                console.log($response);
+                console.log($response.find("table:first"));
+                $("div.content>table").html($response.find("table:first").html());
+                try {
+                  reverseThread();
+                }
+                catch(err) {
+                }
+              }
+            });
+          } else {
+            try {
+              reverseThread();
+            }
+            catch(err) {
+            }
           }
         }
         // Show word counts

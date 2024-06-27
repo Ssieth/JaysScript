@@ -1,4 +1,7 @@
 # Jays RPG Board Script
+## v0.11.1
+* Added option to show most recent posts when making a reply.
+
 ## v0.10.1
 * Added wordcount for posting page
 
